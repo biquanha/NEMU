@@ -372,5 +372,9 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Display welcome message. */
   welcome();
+#ifdef CONFIG_FORK_SNAPDSHOT
+  init_fork();
+  child_waitstore();
+#endif
 }
 #endif

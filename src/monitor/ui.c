@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <fork_snapshot/fork_snapshot.h>
 
 int is_batch_mode();
 int set_watchpoint(char *e);
@@ -173,7 +174,7 @@ static int cmd_attach(char *args) {
   return 0;
 }
 
-static int cmd_save(char *args) {
+int cmd_save(char *args) {
   /* extract the first argument */
   char *arg = strtok(NULL, " ");
 
@@ -185,6 +186,10 @@ static int cmd_save(char *args) {
     FILE *fp = fopen(arg, "w");
     assert(fp != NULL);
     fwrite(&cpu, sizeof(cpu), 1, fp);
+#ifdef CONFIG_FORK_SNAPDSHOT
+    lightqs_take_spec_reg_snapshot();
+    fwrite(&spec_reg_ss, sizeof(spec_reg_ss), 1, fp);
+#endif
     fwrite(guest_to_host(CONFIG_MBASE), MEMORY_SIZE, 1, fp);
     fclose(fp);
   }
@@ -203,9 +208,18 @@ static int cmd_load(char *args) {
     FILE *fp = fopen(arg, "r");
     assert(fp != NULL);
     __attribute__((unused)) int ret;
+#ifndef CONFIG_FORK_SNAPDSHOT
     ret = fread(&cpu, sizeof(cpu), 1, fp);
     ret = fread(guest_to_host(CONFIG_MBASE), MEMORY_SIZE, 1, fp);
     fclose(fp);
+#else
+    ret = fread(&cpu, sizeof(cpu), 1, fp);
+    ret = fread(&spec_reg_ss, sizeof(spec_reg_ss), 1, fp);
+    ret = fread(guest_to_host(CONFIG_MBASE), MEMORY_SIZE, 1, fp);
+    fclose(fp);
+    lightqs_restore_reg_snapshot(-1);
+    difftest_attach();
+#endif
   }
   return 0;
 }

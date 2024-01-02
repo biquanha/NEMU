@@ -134,6 +134,16 @@ config DEBUG
     Enable debug features, which include instruction tracing and watchpoint.
     Add -l <logfile path> to enable instruction tracing and log dump.
 
+config FORK_SNAPDSHOT
+  bool "Enable fork_snap_diff testing"
+  default n
+
+if FORK_SNAPDSHOT
+config FORK_INTERVAL
+  int "Two consecutive fork intervals"
+  default 1000
+endif
+
 config DIFFTEST
   depends on !SHARE
   bool "Enable differential testing"
